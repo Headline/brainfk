@@ -1,72 +1,89 @@
 #include "registermanager.h"
 
-Brainfuck::RegisterManager::RegisterManager() noexcept
+#include <string>
+Brainfuck::RegisterManager::RegisterManager(std::ostream &ostream, std::istream &istream) noexcept :
+	reg(0), ostream(ostream), istream(istream)
 {
-	reg = 0;
 	positive.push_back(0);
 }
 
-void Brainfuck::RegisterManager::doAction(Action const a) noexcept
+void Brainfuck::RegisterManager::doAction(char a) noexcept
 {
 	switch (a)
 	{
-		case Up:
+		case '+':
 			doUp();
 			break;
-		case Down:
+		case '-':
 			doDown();
 			break;
-		case Right:
+		case '>':
 			doRight();
 			break;
-		case Left:
+		case '<':
 			doLeft();
 			break;
+		case '.':
+			doPrint();
+			break;
+		case ',':
+			doRead();
+			break;
 	}
+	
+#ifdef DEBUG
+	std::cout << *this << std::endl;
+#endif
 }
 
-void Brainfuck::RegisterManager::doUp() noexcept
+void Brainfuck::RegisterManager::doRead() noexcept
 {
 	size_t index = 0;
 	auto &vec = getVector(index);
-	auto &cell = vec.at(index);
-	cell.up();
+	vec.at(index) = istream.get();
 }
 
-void Brainfuck::RegisterManager::doDown() noexcept
+inline void Brainfuck::RegisterManager::doPrint() noexcept
 {
 	size_t index = 0;
 	auto &vec = getVector(index);
-	auto &cell = vec.at(index);
-	cell.down();
+	ostream << (char)vec.at(index).getCell();
 }
 
-void Brainfuck::RegisterManager::doLeft() noexcept {
+inline void Brainfuck::RegisterManager::doUp() noexcept
+{
+	size_t index = 0;
+	auto &vec = getVector(index);
+	vec.at(index).up();
+}
+
+inline void Brainfuck::RegisterManager::doDown() noexcept
+{
+	size_t index = 0;
+	auto &vec = getVector(index);
+	vec.at(index).down();
+}
+
+inline void Brainfuck::RegisterManager::doLeft() noexcept {
 	reg--;
 	ensureSize();
 }
 
-void Brainfuck::RegisterManager::doRight() noexcept {
+inline void Brainfuck::RegisterManager::doRight() noexcept {
 	reg++;
 	ensureSize();
 }
 
-void Brainfuck::RegisterManager::ensureSize() noexcept
+inline void Brainfuck::RegisterManager::ensureSize() noexcept
 {
 	size_t index = 0;
 	auto &vec = getVector(index);
-	if (vec.size() <= index)
-		vec.emplace_back(0);
+	if (vec.size() <= index) {
+		vec.push_back(0);
+	}
 }
 
-bigint Brainfuck::RegisterManager::getCurrentValue() noexcept
-{
-	size_t index = 0;
-	auto &vec = getVector(index);
-	return vec[index].getCell();
-}
-
-std::vector<Brainfuck::Cell>& Brainfuck::RegisterManager::getVector(size_t &out) noexcept {
+inline std::vector<Brainfuck::Cell>& Brainfuck::RegisterManager::getVector(size_t &out) noexcept {
 	if (this->reg >= 0) {
 		out = (size_t)this->reg;
 		return positive;

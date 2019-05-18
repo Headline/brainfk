@@ -1,41 +1,15 @@
 #include <iostream>
-#include <vector>
-#include <cmath>
-#include <algorithm>
-#include <iterator>
-#include <string>
+
+#include <chrono>
 
 #include "brainfuckvm.h"
-
-using namespace Brainfuck;
+#include "parser.h"
 
 int main(int argc, char *argv[]) noexcept { 
-	BrainfuckVM vm{};
-	char c;
-	do {
-		system("CLS");
-		std::cout << vm << std::endl;
-	
-		std::string in{};
-		std::getline(std::cin, in);
-		c = in[0];
+	Brainfuck::BrainfuckVM vm{std::cout, std::cin};
 		
-		Action a;
-		switch (c) {
-			case 'w':
-				a = Up;
-				break;
-			case 'a':
-				a = Left;
-				break;
-			case 's':
-				a = Down;
-				break;
-			case 'd':
-				a = Right;
-				break;
-		}
-		
-		vm.doAction(a);
-	} while (c != 'q');
+	auto cb = [](std::string_view str, bool fatal) -> void {
+		printf("\n%s | fatal: %d\n", std::string(str).c_str(), fatal);
+	};
+	vm.run(">+++++++++[<++++++++>-]<.>+++++++[<++++>-]<+.+++++++..+++.[-]>++++++++[<++++>-]<.>+++++++++++[<++++++++>-]<-.--------.+++.------.--------.[-]>++++++++[<++++>-]<+.[-]++++++++++.", cb);
 }

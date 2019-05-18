@@ -7,15 +7,13 @@
 #include <iterator>
 
 #include "cell.h"
+#include "debug.h"
 
 namespace Brainfuck {
-	using bigint = long long int;
+	using bigint = unsigned int;
 	class RegisterManager {
 	public:
 		RegisterManager(std::ostream &ostream, std::istream &istream) noexcept;
-
-		void doAction(char a) noexcept;
-
 		void doUp() noexcept;
 		void doDown() noexcept;
 		void doLeft() noexcept;
@@ -24,12 +22,8 @@ namespace Brainfuck {
 		void doRead() noexcept;
 
 		Brainfuck::bigint getCurrentValue() noexcept{
-			size_t index = 0;
-			auto &vec = getVector(index);
-			return vec[index].getCell();
+			return getVectorCell().getCell();
 		}
-
-		std::vector<Cell>& getVector(size_t &out) noexcept;
 
 		Brainfuck::bigint getCurrentRegister() const noexcept{
 			return reg;
@@ -42,6 +36,27 @@ namespace Brainfuck {
 		}
 		std::vector<Cell> const &getNegative() const noexcept {
 			return negative;
+		}
+		void doAction(char a, int times) noexcept {
+			if (a == '+') 
+				getVectorCell() += times;
+			else if (a == '-')
+				getVectorCell() -= times;
+			else if (a == '>')
+				reg += times;
+			else if (a == '<')
+				reg -= times;
+			else if (a == '.')
+				ostream << static_cast<char>(getVectorCell().getCell());
+			else if (a == ',')
+				doRead();
+			
+#ifdef DEBUG
+			std::cout << *this << std::endl;
+#endif
+		}
+		inline Cell& getVectorCell() noexcept {
+			return (reg >= 0) ? positive[reg] : negative[(reg*-1)-1];
 		}
 		friend std::ostream& operator<<(std::ostream& os, RegisterManager const &reg) {
 			auto &negative = reg.getNegative();

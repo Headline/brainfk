@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <cassert>
+#include <chrono>
 
 #include "registermanager.h"
 #include "parser.h"
@@ -12,23 +13,24 @@ namespace Brainfuck {
 	public:
 		BrainfuckVM(std::ostream &ostream, std::istream &istream) noexcept : regs(ostream, istream) {}
 
-		void doAction(char a) noexcept {
+		void doAction(char a, int times = 1) noexcept {
 #ifdef DEBUG
 			std::cout << "Doing action " << a << std::endl;
 #endif
-			regs.doAction(a);
+			regs.doAction(a, times);
 		}
 		
 		void run(std::string_view str, ErrorCallback cb) noexcept {
 			parser.setString(str);
 			parser.parse(cb);
+			auto &inst = parser.getInstructions();
 			auto start = std::chrono::steady_clock::now();
-			run(parser.getInstructions());
+			run(inst);
 			auto end = std::chrono::steady_clock::now();
 	
-			std::cout << "Elapsed time in seconds : " 
-				<< std::chrono::duration_cast<std::chrono::seconds>(end - start).count()
-				<< " seconds" << std::endl;
+			std::cout << "Elapsed time in milliseconds : " 
+				<< std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+				<< " milliseconds" << std::endl;
 		}
 
 		void run(std::vector<Instruction> const &inst) noexcept {
@@ -39,7 +41,7 @@ namespace Brainfuck {
 					i = inst[i].val;
 					continue;
 				}
-				doAction(c);
+				doAction(c, inst[i].repeat);
 			}
 		}
 

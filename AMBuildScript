@@ -16,7 +16,7 @@ elif cxx.like('msvc'):
     '-W3',
     '-WX',
     '-std:c++17',
-    '/Ot',
+    '/O2',
 	]
 
 cxx.defines += ['_HAS_EXCEPTIONS=0']

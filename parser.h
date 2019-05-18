@@ -8,8 +8,11 @@
 #include <vector>
 #include <unordered_map>
 #include <utility>
+
 #include "cell.h"
 #include "registermanager.h"
+#include "debug.h"
+
 static constexpr char *errors[] = {
 	"Invalid instruction '%c'.",
 };
@@ -19,6 +22,7 @@ namespace Brainfuck {
 
 	struct Instruction {
 		char a;
+		int repeat;
 		size_t val;
 	};
 	class Parser {

@@ -1,12 +1,13 @@
 #include "parser.h"
 
 #include <algorithm>
+#include <stack>
 
 static constexpr inline bool IsValidInstruction(char c) noexcept {
     return c == '+' || c == '-' || c == '>' || c == '<' || c == '.' || c == ',' || c == '[' || c == ']';
 }
 
-Brainfuck::Parser::Parser(std::string_view str) noexcept : str(str), instructions(str.size()+1)
+Brainfuck::Parser::Parser(std::string_view str) noexcept : str(str)
 {
 	std::cout << "Parsing: " << std::string(str) << std::endl;
 }
@@ -25,40 +26,39 @@ std::string Brainfuck::Parser::buildError(size_t err, ...) noexcept
 	return std::string(errorstring);
 }
 
-inline size_t findStartLoop(std::string_view str, size_t index) noexcept
-{
-	int loopscope = 0;
-	while (index > 0) {
-		char c = str[index];
-		if (c == ']')
-			--loopscope;
-		else if (c == '[')
-			++loopscope;
-		
-		if (!loopscope) {
-			return index;
-		}
-		--index;
-	}
-	
-	return -1;
-}
-
 void Brainfuck::Parser::parse(ErrorCallback cb) noexcept
 {
-	size_t index = 0;
-	for (auto it = str.begin(); it != str.end(); ++index, ++it)
+	std::stack<size_t> loopstack;
+	for (auto it = str.begin(); it != str.end(); ++it)
 	{
 		const char c = *it;
 		if (!IsValidInstruction(c)) {
 			std::string err = buildError(0, c);
 			cb(err, true);
 		}
-		if(c == ']') {
-			instructions.push_back({c, findStartLoop(str, index)});
-		} else {
-			instructions.push_back({c, 0});
+
+		if (c == '[') {
+			loopstack.push(instructions.size()-1);
 		}
-		Instruction i = instructions[index];
+		else if(c == ']') {
+			size_t tmp = loopstack.top();
+			loopstack.pop();
+			instructions.push_back({c, 0, tmp});
+		} else {
+			int repeat = 0;
+			if (c == '+' || c == '-' || c == '>' || c == '<') {
+				do {
+					++repeat;
+					++it;
+				} while (it != str.end() && *it == c);
+				--it;
+			}
+			instructions.push_back({c, repeat, 0});
+		}
 	}
+#ifdef DEBUG
+	for (auto inst : instructions) {
+		printf("%c val: %d repeat %d\n", inst.a, inst.val, inst.repeat);
+	}
+#endif
 }

@@ -1,43 +1,32 @@
 #ifndef H_CELL
 #define H_CELL
 
-//#define DEBUG
-
 #include <iostream>
 #include <string>
+#include "debug.h"
 
 namespace Brainfuck {
 	class Cell {
 	public:
-		Cell(Cell const &cell) noexcept : cell(cell.cell) {}
-		Cell(int const cell) noexcept : cell(cell) {}
-		Cell() noexcept : cell(0) {}
+		constexpr Cell(int cell) noexcept : cell(cell) {}
+		constexpr Cell() noexcept : cell(0) {}
 		constexpr void down() noexcept {
-			cell--;
-			if (cell < 0) {
-				cell = 255;
-			}
+			--cell;
 		}
 		constexpr void up() noexcept {
-			cell++;
-			if (cell > 255) {
-				cell = 0;
-			}
+			++cell;
 		}
 		constexpr int getCell() const noexcept {
-			return cell;
+			return cell%256;
 		}
-		operator int() { return cell; }
-		operator int const() { return cell; }
-		Cell& operator= (const Cell &cell) noexcept {
-			this->cell = cell.getCell();
-			return *this;
+		constexpr Cell& operator+=(int val) noexcept {
+			  this->cell += val;
+			  return *this;
 		}
-		Cell& operator= (const int cell) noexcept {
-			this->cell = cell;
-			return *this;
+		constexpr Cell& operator-=(int val) noexcept {
+			  this->cell -= val;
+			  return *this;
 		}
-
 		friend std::ostream& operator<<(std::ostream& os, Cell const &cell) noexcept
 		{
 			os << cell.getCell();

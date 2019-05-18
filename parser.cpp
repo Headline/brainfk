@@ -3,22 +3,10 @@
 #include <algorithm>
 
 static constexpr inline bool IsValidInstruction(char c) noexcept {
-	switch (c) {
-		case '+':
-		case '-':
-		case '>':
-		case '<':
-		case '.':
-		case ',':
-		case '[':
-		case ']':
-			return true;
-		default:
-			return false;
-	}
+    return c == '+' || c == '-' || c == '>' || c == '<' || c == '.' || c == ',' || c == '[' || c == ']';
 }
 
-Brainfuck::Parser::Parser(std::string_view str) noexcept : str(str)
+Brainfuck::Parser::Parser(std::string_view str) noexcept : str(str), instructions(str.size()+1)
 {
 	std::cout << "Parsing: " << std::string(str) << std::endl;
 }
@@ -37,23 +25,20 @@ std::string Brainfuck::Parser::buildError(size_t err, ...) noexcept
 	return std::string(errorstring);
 }
 
-inline int findEndLoop(std::string_view str, size_t index) noexcept
+inline size_t findStartLoop(std::string_view str, size_t index) noexcept
 {
 	int loopscope = 0;
-	while (index < str.size()) {
-		switch (str[index]) {
-			case '[':
-				loopscope++;
-				break;
-			case ']':
-				loopscope--;
-				break;
-		}
+	while (index > 0) {
+		char c = str[index];
+		if (c == ']')
+			--loopscope;
+		else if (c == '[')
+			++loopscope;
 		
 		if (!loopscope) {
 			return index;
 		}
-		index++;
+		--index;
 	}
 	
 	return -1;
@@ -62,19 +47,18 @@ inline int findEndLoop(std::string_view str, size_t index) noexcept
 void Brainfuck::Parser::parse(ErrorCallback cb) noexcept
 {
 	size_t index = 0;
-	for (auto it = str.begin(); it != str.end(); index++, it++)
+	for (auto it = str.begin(); it != str.end(); ++index, ++it)
 	{
 		const char c = *it;
 		if (!IsValidInstruction(c)) {
 			std::string err = buildError(0, c);
 			cb(err, true);
 		}
-		
-		switch (c) {
-			case '[':
-				map.insert({findEndLoop(str, index), index});
-			default:
-				break;
-		}		
+		if(c == ']') {
+			instructions.push_back({c, findStartLoop(str, index)});
+		} else {
+			instructions.push_back({c, 0});
+		}
+		Instruction i = instructions[index];
 	}
 }

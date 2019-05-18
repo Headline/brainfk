@@ -23,27 +23,23 @@ namespace Brainfuck {
 			parser.setString(str);
 			parser.parse(cb);
 			auto start = std::chrono::steady_clock::now();
-			run(str, parser.getMap());
+			run(parser.getInstructions());
 			auto end = std::chrono::steady_clock::now();
 	
-			std::cout << "Elapsed time in microseconds : " 
-				<< std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
-				<< " microseconds" << std::endl;
+			std::cout << "Elapsed time in seconds : " 
+				<< std::chrono::duration_cast<std::chrono::seconds>(end - start).count()
+				<< " seconds" << std::endl;
 		}
 
-		void run(std::string_view str, std::unordered_map<size_t, size_t> const &loopmap) noexcept {
-			size_t size{str.size()};
-			for (size_t i = 0; i < size; i++) {
-				switch (str[i]) {
-					case ']':
-						if (regs.getCurrentValue() != 0) {
-							i = loopmap.find(i)->second;
-						}
-						break;
-					default:
-						doAction(str[i]);
-						break;
+		void run(std::vector<Instruction> const &inst) noexcept {
+			size_t size{inst.size()};
+			for (size_t i = 0; i < size; ++i) {
+				char c = inst[i].a;
+				if (c == ']' && regs.getCurrentValue() != 0) {
+					i = inst[i].val;
+					continue;
 				}
+				doAction(c);
 			}
 		}
 

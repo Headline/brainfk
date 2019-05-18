@@ -2,7 +2,7 @@
 
 #include <string>
 Brainfuck::RegisterManager::RegisterManager(std::ostream &ostream, std::istream &istream) noexcept :
-	reg(0), ostream(ostream), istream(istream)
+	reg(0), ostream(ostream), istream(istream), positive(10000), negative(10000)
 {
 	positive.push_back(0);
 }

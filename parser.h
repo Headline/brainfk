@@ -4,17 +4,11 @@
 #include <iostream>
 #include <string>
 #include <cstdarg>
-
 #include <vector>
-#include <unordered_map>
-#include <utility>
-
-#include "cell.h"
-#include "registermanager.h"
-#include "debug.h"
 
 static constexpr char *errors[] = {
 	"Invalid instruction '%c'.",
+	"Unbalanced loop detected",
 };
 
 namespace Brainfuck {
@@ -25,6 +19,7 @@ namespace Brainfuck {
 		int repeat;
 		size_t val;
 	};
+
 	class Parser {
 	public:
 		Parser() = default;
@@ -33,11 +28,14 @@ namespace Brainfuck {
 		void setString(std::string_view str) noexcept {
 			this->str = std::string(str);
 		}
-		void parse(ErrorCallback cb) noexcept;
-		std::string buildError(size_t err, ...) noexcept;
 		std::vector<Instruction> &getInstructions() noexcept {
 			return instructions;
 		}
+
+	public:
+		void parse(ErrorCallback cb) noexcept;
+		std::string buildError(size_t err, ...) noexcept;
+
 	private:
 		std::string str{};
 		std::vector<Instruction> instructions;

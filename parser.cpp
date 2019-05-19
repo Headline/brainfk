@@ -9,7 +9,9 @@ static constexpr inline bool IsValidInstruction(char c) noexcept {
 
 Brainfuck::Parser::Parser(std::string_view str) noexcept : str(str)
 {
+#ifdef DEBUG
 	std::cout << "Parsing: " << std::string(str) << std::endl;
+#endif
 }
 
 std::string Brainfuck::Parser::buildError(size_t err, ...) noexcept
@@ -55,6 +57,11 @@ void Brainfuck::Parser::parse(ErrorCallback cb) noexcept
 			}
 			instructions.push_back({c, repeat, 0});
 		}
+	}
+	
+	if (loopstack.size() != 0) {
+		std::string err = buildError(1);
+		cb(err, true);
 	}
 #ifdef DEBUG
 	for (auto inst : instructions) {

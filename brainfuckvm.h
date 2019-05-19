@@ -19,7 +19,7 @@ namespace Brainfuck {
 #endif
 			regs.doAction(a, times);
 		}
-		
+
 		void run(std::string_view str, ErrorCallback cb) noexcept {
 			parser.setString(str);
 			parser.parse(cb);

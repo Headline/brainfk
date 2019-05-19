@@ -79,4 +79,4 @@ namespace Brainfuck {
 		std::vector<unsigned char> negative;
 	};
 }
-#endif H_REGISTERMANAGER
+#endif

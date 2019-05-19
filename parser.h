@@ -6,7 +6,7 @@
 #include <cstdarg>
 #include <vector>
 
-static constexpr char *errors[] = {
+static constexpr char const * const errors[] = {
 	"Invalid instruction '%c'.",
 	"Unbalanced loop detected",
 };

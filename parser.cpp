@@ -61,7 +61,7 @@ void Brainfuck::Parser::parse(ErrorCallback cb) noexcept
 	
 	if (loopstack.size() != 0) {
 		std::string err = buildError(1);
-		cb(err, true);
+		cb(err, false); // this is not necessarily a fatal error
 	}
 #ifdef DEBUG
 	for (auto inst : instructions) {

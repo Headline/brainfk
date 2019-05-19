@@ -6,7 +6,8 @@
 #include <algorithm>
 #include <iterator>
 
-#include "debug.h"
+#define BRAINFUCK_MAX_SPEED // skips bounds checking
+#define BRAINFUCK_ALLOCATION_SIZE 8 // manually sets array size
 
 namespace Brainfuck {
 	using bigint = unsigned int;

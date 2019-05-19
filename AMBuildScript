@@ -25,6 +25,6 @@ program = builder.cxx.Program('Brainfuck')
 program.sources += [
   'registermanager.cpp',
   'parser.cpp',
-  'main.cpp',
+  'test.cpp',
 ]
 builder.Add(program)

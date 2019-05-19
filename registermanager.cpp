@@ -3,7 +3,13 @@
 #include <string>
 
 Brainfuck::RegisterManager::RegisterManager(std::ostream &ostream, std::istream &istream) noexcept :
-	reg(0), ostream(ostream), istream(istream), positive(100), negative(100)
+	reg(0), ostream(ostream), istream(istream), 
+#ifndef BRAINFUCK_ALLOCATION_SIZE
+	positive(100), negative(100)
+#else
+	positive(BRAINFUCK_ALLOCATION_SIZE), negative(BRAINFUCK_ALLOCATION_SIZE)
+#endif
+
 {
 	positive.push_back(0);
 }
@@ -15,14 +21,14 @@ void Brainfuck::RegisterManager::doRead() noexcept
 
 void Brainfuck::RegisterManager::doLeft() noexcept {
 	--reg;
-#ifdef MAX_SPEED
+#ifndef BRAINFUCK_MAX_SPEED
 	ensureSize();
 #endif
 }
 
 void Brainfuck::RegisterManager::doRight() noexcept {
 	++reg;
-#ifdef MAX_SPEED
+#ifndef BRAINFUCK_MAX_SPEED
 	ensureSize();
 #endif
 }

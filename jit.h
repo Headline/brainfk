@@ -11,7 +11,7 @@
 #if defined WIN64 || defined _WIN64
 #define X64
 #else
-#define X32
+#define X86
 #endif
 
 namespace Brainfuck {
@@ -50,11 +50,18 @@ public:
 				// RCX - RDX - R8
 				// Therefore our cells ptr will exist in RCX, getchar in RDX, and putchar in R8
 				0x49, 0x89, 0xCB,			// mov r11, rcx
-#else // X32
+#else // x86
+				// Most x86 calling conventions require us to save the old call frame somewhere safe
+				0x55,						// push ebp
+				0x89, 0xE5,					// mov ebp, esp // init new call frame
+				0x56,						// push esi
+				0x57,						// push edi
 				// Windows x86 calling convention states paramaters are stored in the stack, lets grab them
+
 				0x8B, 0x4D, 0x08,			// mov ecx, [ebp+8] // cellsptr
 				0x8B, 0x75, 0x0C,			// mov esi, [ebp+12] // getchar
 				0x8B, 0x7D, 0x10,			// mov edi, [ebp+16] // putchar
+
 #endif
 				});
 		}
@@ -62,7 +69,7 @@ public:
 			pushBytes({
 #ifdef X64
 				0x49, 0x83, 0xC3, amount,	// add r11, amount
-#else // X32
+#else // x86
 				0x83, 0xC1, amount,			// add ecx, amount
 #endif
 			});
@@ -71,7 +78,7 @@ public:
 			pushBytes({
 #ifdef X64
 				0x49, 0x83, 0xEB, amount,	// sub r11, i.repeat
-#else // X32
+#else // x86
 				0x83, 0xE9, amount,			// sub ecx, amount
 #endif
 			});
@@ -80,7 +87,7 @@ public:
 			pushBytes({
 #ifdef X64
 				0x41, 0x80, 0x03, amount,	// add BYTE PTR [r11],i.repeat
-#else // X32
+#else // x86
 				0x80, 0x01, amount,			// add byte ptr[ecx], amount
 #endif
 			});
@@ -89,7 +96,7 @@ public:
 			pushBytes({
 #ifdef X64
 				0x41, 0x80, 0x2B, amount,	// sub BYTE PTR [r11], i.repeat		
-#else // X32
+#else // x86
 				0x80, 0x29, amount,			// sub byte ptr[ecx], amount
 #endif
 			});
@@ -107,15 +114,19 @@ public:
 				0x41, 0x5B,					// pop r11
 				0x41, 0x58,					// pop r8
 				0x5A,						// pop rdx
-#else // X32
+#else // x86
 				0x51,						// push ecx
-				0x56,						// push esi
-				0x57,						// push edi
+				0x0F, 0xB6, 0x09,			// movzx ecx, byte ptr[ecx]
+				0x51,						// push ecx
+				0xFF, 0xD7,					// call edi
+				0x83, 0xC4, 0x04,			// add esp, 4 // remove param from stack
+				0x59,						// pop ecx
 #endif
 			});
 		}
 		inline void doRead() {
 			pushBytes({
+#ifdef X64
 				0x52,						// push rdx
 				0x41, 0x50,					// push r8
 				0x41, 0x53,					// push r11
@@ -124,24 +135,38 @@ public:
 				0x41, 0x5B,					// pop r11
 				0x41, 0x58,					// pop r8
 				0x5A,						// pop rdx
+#else // x86
+				0x51,						// push ecx
+				0xFF, 0xD6,					// call esi
+				0x59,						// pop ecx
+				0x88, 0x01,					// move byte ptr[ecx], eax
+#endif
 			});
 		}
 		inline void loopStart() {
 			pushBytes({
+#ifdef X64
 				0x41, 0x80, 0x3B, 0x00,				// cmp byte ptr [r11], 0
+#else
+				0x80, 0x39, 0x00,					// cmp byte ptr [ecx], 0
+#endif
 				0x0f, 0x84, 0xDE, 0xAD, 0xBE, 0xEF, // je 0xDEADBEEF
 			});
 		}
 		inline void loopEnd() {
 			pushBytes({
+#ifdef X64
 				0x41, 0x80, 0x3B, 0x00,				// cmp byte ptr [r11], 0
+#else
+				0x80, 0x39, 0x00,					// cmp byte ptr [ecx], 0
+#endif
 				0x0f, 0x85, 0xDE, 0xAD, 0xBE, 0xEF	// jne 0xDEADBEEF
 			});
 		}
 
 		inline void buildJumps(unsigned char *blob) {
 			std::stack<int32_t> loopstack;
-			for (int32_t pos = 0; pos < code.size()-6; pos++) {
+			for (int32_t pos = 0; pos < (int32_t)code.size()-6; pos++) {
 
 				if (blob[pos] == 0x0f && blob[pos+1] == 0x84) {
 					loopstack.push(pos+6); // mark *after* this jump instruction
@@ -171,6 +196,10 @@ public:
 #ifdef X64
 				0xc3,		// ret
 #else //X32
+				0x5F,						// pop edi
+				0x5E,						// pop esi
+				0x89, 0xEC, // mov esp, ebp
+				0x5D,		// pop ebp
 				0xc3,
 #endif
 			});
@@ -214,7 +243,7 @@ public:
 			std::memset(cells.get(), 0, 1024);
 
 			funct(cells.get(), getchar, putchar);
-
+			//system("pause");
 			VirtualFree(alloc, 0, MEM_RELEASE);
 		}
 	protected:

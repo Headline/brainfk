@@ -213,13 +213,7 @@ public:
 			std::unique_ptr<uint8_t[]> cells(new uint8_t[1024]);
 			std::memset(cells.get(), 0, 1024);
 
-			auto start = std::chrono::steady_clock::now();
 			funct(cells.get(), getchar, putchar);
-			auto end = std::chrono::steady_clock::now();
-
-			std::cout << "Elapsed time in milliseconds : "
-				<< std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
-				<< " milliseconds" << std::endl;
 
 			VirtualFree(alloc, 0, MEM_RELEASE);
 		}

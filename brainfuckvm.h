@@ -2,16 +2,16 @@
 #define H_BRAINFUCKVM
 
 #include <iostream>
-#include <cassert>
-#include <chrono>
 
 #include "registermanager.h"
 #include "parser.h"
+#include "jit.h"
 
 namespace Brainfuck {
+	template <typename T>
 	class BrainfuckVM {
 	public:
-		BrainfuckVM(std::ostream &ostream, std::istream &istream) noexcept : regs(ostream, istream) {}
+		constexpr BrainfuckVM(std::ostream &ostream, std::istream &istream, bool jit) noexcept : regs(ostream, istream), jit(jit) {}
 
 		void doAction(char a, int times = 1) noexcept {
 #ifdef DEBUG
@@ -20,42 +20,83 @@ namespace Brainfuck {
 			regs.doAction(a, times);
 		}
 
-		void run(std::string_view str, ErrorCallback cb) noexcept {
+		constexpr void run(std::string_view str, ErrorCallback cb) noexcept {
 			parser.setString(str);
 			parser.parse(cb);
-			auto &inst = parser.getInstructions();
-			auto start = std::chrono::steady_clock::now();
-			run(inst);
-			auto end = std::chrono::steady_clock::now();
-	
-			std::cout << "Elapsed time in milliseconds : " 
-				<< std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
-				<< " milliseconds" << std::endl;
-		}
+			auto& inst = parser.getInstructions();
 
-		void run(std::vector<Instruction> const &inst) noexcept {
-			size_t size{inst.size()};
-			for (size_t i = 0; i < size; ++i) {
-				char c = inst[i].a;
-				if (c == ']' && regs.getCurrentValue() != 0) {
-					i = inst[i].val;
-					continue;
-				}
-				doAction(c, inst[i].repeat);
+			if (jit) {
+				runJIT(inst);
+			}
+			else {
+				runVM(inst);
 			}
 		}
 
-		RegisterManager getRegisterManager() const noexcept {
+		RegisterManager<T> getRegisterManager() const noexcept {
 			return regs;
 		}
+
 		friend std::ostream& operator<<(std::ostream &os, BrainfuckVM const &vm) noexcept {
-			RegisterManager regs = vm.getRegisterManager();
+			auto regs = vm.getRegisterManager();
 			os << regs;
 			return os;
 		}
-	private:
+private:
+		constexpr void runJIT(std::vector<Instruction> const &inst) noexcept {
+			Jit jit;
+			jit.init();
+			for (auto const &i : inst) {
+				if (i.a == '>') {
+					jit.shiftRight(i.repeat);
+				}
+				else if (i.a == '<') {
+					jit.shiftLeft(i.repeat);
+				}
+				else if (i.a == '+') {
+					jit.inc(i.repeat);
+				}
+				else if (i.a == '-') {
+					jit.dec(i.repeat);
+				}
+				else if (i.a == '.') {
+					jit.doPrint();
+				}
+				else if (i.a == ',') {
+					jit.doRead();
+				}
+				else if (i.a == '[') {
+					jit.loopStart();
+				}
+				else if (i.a == ']') {
+					jit.loopEnd();
+				}
+			}
+			jit.endFunction();
+			jit.execute(true);
+		}
+		
+		void runVM(std::vector<Instruction> const &inst) noexcept {
+			size_t size{inst.size()};
+			for (size_t i = 0; i < size; ++i) {
+				char c = inst[i].a;
+				if (c == '[' && regs.getVectorCell() == 0) {
+					i = inst[i].val;
+					continue;
+				}
+				else if (c == ']' && regs.getVectorCell() != 0) {
+					i = inst[i].val;
+					continue;
+				}
+				else {
+					doAction(c, inst[i].repeat);
+				}
+			}
+		}
+
+		bool jit;
 		Parser parser;
-		RegisterManager regs;
+		RegisterManager<T> regs;
 	};
 }
 #endif

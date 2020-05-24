@@ -3,39 +3,14 @@
 
 #include <windows.h>
 
+#include "optimizer.h"
+
 #include <vector>
 #include <memory>
 #include <algorithm>
 #include <functional>
 
-#if defined WIN64 || defined _WIN64
-#define X64
-#else
-#define X86
-#endif
-
 namespace Brainfuck {
-	using Jitblob = std::basic_string<unsigned char>;
-	struct OptimizerEntry {
-		OptimizerEntry(std::vector<unsigned char> find, std::vector<unsigned char> replace) : find(find), replace(replace) {}
-		std::vector<unsigned char> find;
-		std::vector<unsigned char> replace;
-	};
-	OptimizerEntry REPLACEMENT_QUERIES[] = {
-		/**
-		 * Prevents unnecessary pushes & pops off the stack. An example of this behavior
-		 * is shown below.
-		 *
-		 *		pop r11
-		 *		pop r8
-		 *		pop rdx
-		 *		push rdx
-		 *		push r8
-		 *		push r11
-		 */
-		{ {0x41, 0x5B, 0x41, 0x58, 0x5A, 0x52, 0x41, 0x50, 0x41, 0x53}, {0x90}}
-	};
-
 	class Jit {
 public:
 		Jit() {
@@ -57,7 +32,6 @@ public:
 				0x56,						// push esi
 				0x57,						// push edi
 				// Windows x86 calling convention states paramaters are stored in the stack, lets grab them
-
 				0x8B, 0x4D, 0x08,			// mov ecx, [ebp+8] // cellsptr
 				0x8B, 0x75, 0x0C,			// mov esi, [ebp+12] // getchar
 				0x8B, 0x7D, 0x10,			// mov edi, [ebp+16] // putchar
@@ -225,7 +199,10 @@ public:
 
 		void execute(bool optimize = false) noexcept {
 			if (optimize) {
-				this->optimize();
+				Optimizer<unsigned char> o(code);
+				o.optimize();
+				spew(std::cout);
+				system("pause");
 			}
 
 			auto alloc = VirtualAlloc(NULL, 0x4000000, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
@@ -241,29 +218,18 @@ public:
 
 			std::unique_ptr<uint8_t[]> cells(new uint8_t[1024]);
 			std::memset(cells.get(), 0, 1024);
-
+#ifdef BF_BENCHMARK
+			auto start = std::chrono::steady_clock::now();
+#endif
 			funct(cells.get(), getchar, putchar);
-			//system("pause");
+#ifdef BF_BENCHMARK
+			auto end = std::chrono::steady_clock::now();
+			std::cout << "Elapsed time in milliseconds : "
+				<< std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+				<< " milliseconds" << std::endl;
+#endif
 			VirtualFree(alloc, 0, MEM_RELEASE);
 		}
-	protected:
-		void optimize() {
-			for (auto entry : REPLACEMENT_QUERIES) {
-				// test to see if we can find a replacement
-				auto result = std::search(code.begin(), code.end(), std::boyer_moore_searcher(entry.find.begin(), entry.find.end()));
-				if (result != code.end()) {
-					// erase code
-					auto last = code.erase(result, result + entry.find.size());
-					// our convention here is that if the replacement begins with a NOP, then there's nothing to replace
-					// and we should just move on
-					if (entry.replace[0] != 0x90) {
-						--last; // go back to where we erased, since we're going to need to insert
-						code.insert(last, entry.replace.begin(), entry.replace.end());
-					}
-				}
-			}
-		}
-
 	private:
 		std::vector<unsigned char> code;
 		std::stack<int> loopstack;

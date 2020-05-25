@@ -128,11 +128,11 @@ namespace Brainfuck {
 		 *
 		 * Can be converted to the trivial operation shown below
 		 *
-		 *		movzx rcx, byte ptr[r11]
-		 *		mov byte ptr[r11], 0
-		 *		add r11, ???
-		 *		mov byte ptr[r11], cl
-		 *		sub r11, ???
+		 *		movzx eax, byte ptr[ecx]
+		 *		mov byte ptr[ecx], 0
+		 *		add ecx, ???
+		 *		mov byte ptr[ecx], al
+		 *		sub ecx, ???
 		 *
 		 */
 		{

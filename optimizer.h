@@ -7,11 +7,9 @@
 #include <functional>
 #include <optional>
 
-#if defined WIN64 || defined _WIN64
-#define X64
-#else
-#define X86
-#endif
+#include "platform.h"
+
+//#define BF_BENCHMARK
 
 namespace Brainfuck {
 	struct OptimizerEntry {
@@ -28,7 +26,7 @@ namespace Brainfuck {
 	};
 
 	OptimizerEntry REPLACEMENT_QUERIES[] = {
-#ifdef X64
+#ifdef PLATFORM_WINDOWS_64
 		/**
 		 * Removes unnecessary loop comparisons when resetting a cell to 0. i.e. [-]
 		 *
@@ -82,8 +80,8 @@ namespace Brainfuck {
 			 0x83, 0xC3, 0x2A, 0x41, 0x80, 0x03, 0x01, 0x49, 0x83, 0xEB, 0x2A, 0x41, 0x80, 0x3B, 0x00,
 			 0x0F, 0x85, 0xDE, 0xAD, 0xBE, 0xEF},
 
-			{0x51, 0x49, 0x0F, 0xB6, 0x0B, 0x41, 0xC6, 0x03, 0x00, 0x49, 0x83, 0xC3, 0x90, 0x41, 0x88, 
-			 0x0B, 0x49, 0x83, 0xEB, 0x90, 0x59},
+			{0x49, 0x0F, 0xB6, 0x0B, 0x41, 0xC6, 0x03, 0x00, 0x49, 0x83, 0xC3, 0x90, 0x41, 0x88, 
+			 0x0B, 0x49, 0x83, 0xEB, 0x90},
 
 			{true, true, true, true, true, true, true, true, true, true, true, true, true, true, true,
 			 true, true, false, true, true, true, true, true, true, true, false, true, true, true, true,
@@ -91,7 +89,62 @@ namespace Brainfuck {
 			true
 		}
  #else
-		 { {}, {} }
+		/**
+		 * Removes unnecessary loop comparisons when resetting a cell to 0. i.e. [-]
+		 *
+		 *		cmp byte ptr [ecx], 0
+		 *		je <addr>
+		 *		sub byte ptr[ecx], amount
+		 *		cmp byte ptr [ecx], 0
+		 *		jne <addr>
+		 *
+		 *	Will be converted to
+		 *
+		 *		mov byte ptr[ecx], 0
+		 *
+		 */
+		{
+			{0x80, 0x39, 0x00, 0x0F, 0x84, 0xDE, 0xAD, 0xBE, 0xEF, 0x80, 0x29, 0x2A, 0x80, 0x39, 0x00,
+			 0x0F, 0x85, 0xDE, 0xAD, 0xBE, 0xEF},
+
+			{0xC6, 0x01, 0x00},
+
+			{true, true, true, true, true, true, true, true, true, true, true, false, true, true, true,
+			 true, true, true, true, true, true},
+			false
+		},
+		/**
+		 * Optimizes routines with destructive move operations like the following: [->>>+<<<]
+		 * We can wildcard the movement amount & move the value ourself.
+		 *
+		 *		cmp byte ptr [ecx], 0
+		 *		je <addr>
+		 *		sub byte ptr[ecx], 1
+		 *		add ecx, ???
+		 *		add byte ptr[ecx], 1
+		 *		sub ecx, ???
+		 *		cmp byte ptr [ecx], 0
+		 *		jne <addr>
+		 *
+		 * Can be converted to the trivial operation shown below
+		 *
+		 *		movzx rcx, byte ptr[r11]
+		 *		mov byte ptr[r11], 0
+		 *		add r11, ???
+		 *		mov byte ptr[r11], cl
+		 *		sub r11, ???
+		 *
+		 */
+		{
+			{0x80, 0x39, 0x00, 0x0F, 0x84, 0xDE, 0xAD, 0xBE, 0xEF, 0x80, 0x29, 0x01, 0x83, 0xC1, 0x2A,
+			 0x80, 0x01, 0x01, 0x83, 0xE9, 0x2A, 0x80, 0x39, 0x00, 0x0F, 0x85, 0xDE, 0xAD, 0xBE, 0xEF },
+
+			{0x0F, 0xB6, 0x01, 0xC6, 0x01, 0x00, 0x83, 0xC1, 0x90, 0x88, 0x01, 0x83, 0xE9, 0x90},
+
+			{true, true, true, true, true, true, true, true, true, true, true, true, true, true, false,
+			 true, true, true, true, true, false, true, true, true, true, true, true, true, true, true },
+			true
+		}
  #endif
 	};
 

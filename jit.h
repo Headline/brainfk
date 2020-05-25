@@ -3,12 +3,14 @@
 
 #include <windows.h>
 
-#include "optimizer.h"
-
 #include <vector>
 #include <memory>
 #include <algorithm>
 #include <functional>
+
+
+#include "optimizer.h"
+#include "platform.h"
 
 namespace Brainfuck {
 	class Jit {
@@ -20,7 +22,7 @@ public:
 
 		inline void init() {
 			pushBytes({
-#ifdef X64
+#ifdef PLATFORM_WINDOWS_64
 				// Windows x64 calling convention dictates the parameters are passed in the following order
 				// RCX - RDX - R8
 				// Therefore our cells ptr will exist in RCX, getchar in RDX, and putchar in R8
@@ -41,7 +43,7 @@ public:
 		}
 		inline void shiftRight(uint8_t amount) {
 			pushBytes({
-#ifdef X64
+#ifdef PLATFORM_WINDOWS_64
 				0x49, 0x83, 0xC3, amount,	// add r11, amount
 #else // x86
 				0x83, 0xC1, amount,			// add ecx, amount
@@ -50,7 +52,7 @@ public:
 		}
 		inline void shiftLeft(uint8_t amount) {
 			pushBytes({
-#ifdef X64
+#ifdef PLATFORM_WINDOWS_64
 				0x49, 0x83, 0xEB, amount,	// sub r11, i.repeat
 #else // x86
 				0x83, 0xE9, amount,			// sub ecx, amount
@@ -59,7 +61,7 @@ public:
 		}
 		inline void inc(uint8_t amount) {
 			pushBytes({
-#ifdef X64
+#ifdef PLATFORM_WINDOWS_64
 				0x41, 0x80, 0x03, amount,	// add BYTE PTR [r11],i.repeat
 #else // x86
 				0x80, 0x01, amount,			// add byte ptr[ecx], amount
@@ -68,7 +70,7 @@ public:
 		}
 		inline void dec(uint8_t amount) {
 			pushBytes({
-#ifdef X64
+#ifdef PLATFORM_WINDOWS_64
 				0x41, 0x80, 0x2B, amount,	// sub BYTE PTR [r11], i.repeat		
 #else // x86
 				0x80, 0x29, amount,			// sub byte ptr[ecx], amount
@@ -77,7 +79,7 @@ public:
 		}
 		inline void doPrint() {
 			pushBytes({
-#ifdef X64
+#ifdef PLATFORM_WINDOWS_64
 				0x52,						// push rdx
 				0x41, 0x50,					// push r8
 				0x41, 0x53,					// push r11
@@ -100,7 +102,7 @@ public:
 		}
 		inline void doRead() {
 			pushBytes({
-#ifdef X64
+#ifdef PLATFORM_WINDOWS_64
 				0x52,						// push rdx
 				0x41, 0x50,					// push r8
 				0x41, 0x53,					// push r11
@@ -119,7 +121,7 @@ public:
 		}
 		inline void loopStart() {
 			pushBytes({
-#ifdef X64
+#ifdef PLATFORM_WINDOWS_64
 				0x41, 0x80, 0x3B, 0x00,				// cmp byte ptr [r11], 0
 #else
 				0x80, 0x39, 0x00,					// cmp byte ptr [ecx], 0
@@ -129,7 +131,7 @@ public:
 		}
 		inline void loopEnd() {
 			pushBytes({
-#ifdef X64
+#ifdef PLATFORM_WINDOWS_64
 				0x41, 0x80, 0x3B, 0x00,				// cmp byte ptr [r11], 0
 #else
 				0x80, 0x39, 0x00,					// cmp byte ptr [ecx], 0
@@ -167,7 +169,7 @@ public:
 		}
 		inline void endFunction() {
 			pushBytes({
-#ifdef X64
+#ifdef PLATFORM_WINDOWS_64
 				0xc3,		// ret
 #else //X32
 				0x5F,						// pop edi
@@ -201,8 +203,8 @@ public:
 			if (optimize) {
 				Optimizer<unsigned char> o(code);
 				o.optimize();
-				spew(std::cout);
-				system("pause");
+				//spew(std::cout);
+				//system("pause");
 			}
 
 			auto alloc = VirtualAlloc(NULL, 0x4000000, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);

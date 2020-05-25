@@ -2,6 +2,7 @@ import os
 
 cxx = builder.DetectCxx()
 
+
 if cxx.like('gcc'):
     cxx.cflags += [
       '-pipe',
@@ -10,7 +11,7 @@ if cxx.like('gcc'):
       '-fvisibility=hidden',
       '-std=c++1z',
     ]
-elif cxx.like('msvc'):
+if cxx.like('msvc'):
 	cxx.cflags += [
     '-W3',
     '-WX',
